@@ -1,5 +1,8 @@
 flask_session/
 books.csv
+.vscode/
+start_flask.sh
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
