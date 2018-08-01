@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, session, render_template
+from flask import Flask, session, render_template, redirect, url_for
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -27,7 +27,9 @@ def index():
     #return render_template("index.html", headline="You are logged in", user_id="1")
 
 
-@app.route("/register.html",methods=["GET","POST"])
+@app.route("/search",methods=["GET","POST"])
 def register():
+    if session.get("user_id") is None:
+        return redirect(url_for('index'))
     if request.method == "POST":
         pass
