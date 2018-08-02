@@ -19,7 +19,6 @@ def main():
         print(insert_count)
       insert_count += 1
     db.commit()
-    print(f"Rows inserted: {insert_count}")
 
 if __name__ == "__main__":
     main()
