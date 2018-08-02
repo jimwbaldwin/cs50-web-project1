@@ -38,7 +38,8 @@ def index():
         else:
             return render_template("index.html", message="user_exists", user_id=session.get("user_id"))
     elif request.method == "POST" and request.form['btn'] == 'Login':
-        bcrypt.hashpw('secret', hashed)
+        pass
+        #bcrypt.hashpw(request.form['register_password'].encode("utf8"), hashed)
         #return render_template("index.html", headline="You are logged in", user_id="1")
     
     return render_template("index.html", message="", user_id=session.get("user_id"))
