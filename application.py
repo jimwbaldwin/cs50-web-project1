@@ -1,6 +1,7 @@
 import os
+import bcrypt
 
-from flask import Flask, session, render_template, redirect, url_for
+from flask import Flask, session, render_template, redirect, url_for, request
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -23,9 +24,24 @@ db = scoped_session(sessionmaker(bind=engine))
 
 @app.route("/",methods=["GET","POST"])
 def index():
-    return render_template("index.html", headline="You are logged in", user_id=session.get("user_id"))
-    #return render_template("index.html", headline="You are logged in", user_id="1")
-
+    if request.method == "POST" and request.form['btn'] == 'Register':
+        if db.execute("SELECT 1 FROM users WHERE user_name = :user_name;",{"user_name": request.form['register_username']}).fetchone() is None:
+            db.execute("INSERT INTO users (user_name, password_hash, given_name, email_addr_text) VALUES (:user_name, :password_hash, :given_name, :email_addr_text)",
+            {"user_name": request.form['register_username']
+            #Use bcrypt to hash the password. I'm trying not to store it in a variable at all.
+            , "password_hash": bcrypt.hashpw(request.form['register_password'].encode("utf8"), bcrypt.gensalt())
+            , "given_name": request.form['register_email']
+            , "email_addr_text": request.form['register_given_name']
+            })
+            db.commit()
+            return render_template("index.html", message="user_created", user_id=session.get("user_id"))
+        else:
+            return render_template("index.html", message="user_exists", user_id=session.get("user_id"))
+    elif request.method == "POST" and request.form['btn'] == 'Login':
+        bcrypt.hashpw('secret', hashed)
+        #return render_template("index.html", headline="You are logged in", user_id="1")
+    
+    return render_template("index.html", message="", user_id=session.get("user_id"))
 
 @app.route("/search",methods=["GET","POST"])
 def register():
