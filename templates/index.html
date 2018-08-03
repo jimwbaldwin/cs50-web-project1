@@ -11,9 +11,15 @@
     <div class="container">
       <div class="row">
         <div class="col">
+          {% if message == "user_logout" %}
+          <div class="alert alert-success" role="alert">
+              You have been logged out.
+          </div>
+          {% else %}
           <div class="alert alert-primary" role="alert">
               You are not logged in. Please log in or register.
           </div>
+          {% endif %}
         </div>
       </div>  
       <!-- Login card -->
@@ -29,14 +35,6 @@
                   </div>
                 </div>
               </div>
-            {% elif message == "user_exists" %}
-            <div class="row">
-              <div class="col-sm-12">
-                <div class="alert alert-warning" role="alert">
-                  User name already is already taken.
-                </div>
-              </div>
-            </div>
             {% endif %}
             <div class="form-group row ">
               <label for="login_username" class="col-sm-2 col-form-label">Username</label>
