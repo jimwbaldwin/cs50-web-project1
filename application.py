@@ -38,9 +38,16 @@ def index():
         else:
             return render_template("index.html", message="user_exists", user_id=session.get("user_id"))
     elif request.method == "POST" and request.form['btn'] == 'Login':
-        pass
-        #bcrypt.hashpw(request.form['register_password'].encode("utf8"), hashed)
-        #return render_template("index.html", headline="You are logged in", user_id="1")
+        session.login_result = db.execute("SELECT id, password_hash FROM users WHERE user_name = :user_name;"
+             ,{"user_name": request.form['login_username']}).fetchone()
+        db.commit()
+        if session.login_result is not None and bcrypt.checkpw(request.form['login_password'].encode("utf8"), bytes(session.login_result[1])):
+            session["user_id"] = session.login_result[0]
+        else:
+            return render_template("index.html", message="invalid_login", user_id=session.get("user_id"))
+
+        print(session.get("user_id"))
+        return render_template("index.html", message="", user_id=session.get("user_id"))
     
     return render_template("index.html", message="", user_id=session.get("user_id"))
 
