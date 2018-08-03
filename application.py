@@ -43,17 +43,34 @@ def index():
         db.commit()
         if session.login_result is not None and bcrypt.checkpw(request.form['login_password'].encode("utf8"), bytes(session.login_result[1])):
             session["user_id"] = session.login_result[0]
+            #Clear the variables that had the password hash.
+            session.login_result = None
         else:
             return render_template("index.html", message="invalid_login", user_id=session.get("user_id"))
 
         print(session.get("user_id"))
-        return render_template("index.html", message="", user_id=session.get("user_id"))
+        return render_template("search.html", message="", user_id=session.get("user_id"))
     
     return render_template("index.html", message="", user_id=session.get("user_id"))
 
+
+
 @app.route("/search",methods=["GET","POST"])
-def register():
+def search():
     if session.get("user_id") is None:
         return redirect(url_for('index'))
-    if request.method == "POST":
-        pass
+    else:
+        """
+select *
+from books
+WHERE lower(isbn_text) like lower('%john%')
+OR lower(title_text)   like lower('%john%')
+OR lower(author_name)  like lower('%john%')
+;
+"""
+        return render_template("search.html", message="", user_id=session.get("user_id"))
+
+@app.route("/logout",methods=["GET","POST"])
+def logout():
+    session.clear()
+    return render_template("index.html", message="user_logout", user_id=session.get("user_id"))
