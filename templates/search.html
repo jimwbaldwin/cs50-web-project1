@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+
+{% block title %}
+  Find a book
+{% endblock %}
+
+{% block body %}
+  {% if user_id is not none %}
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        <div class="input-group mb-3">
+          <input type="text" class="form-control" placeholder="Search ISBN, author name or book title" aria-label="Recipient's username" aria-describedby="button-addon2">
+          <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="button" id="button-addon2">Search</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}
