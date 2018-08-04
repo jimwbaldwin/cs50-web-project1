@@ -47,11 +47,11 @@ def index():
             session.login_result = None
         else:
             return render_template("index.html", message="invalid_login", user_id=session.get("user_id"))
-
-        print(session.get("user_id"))
-        return render_template("search.html", message="", user_id=session.get("user_id"))
-    
-    return render_template("index.html", message="", user_id=session.get("user_id"))
+        #return render_template("search.html", message="", user_id=session.get("user_id"))
+    if session.get("user_id") is None:
+        return render_template("index.html", message="", user_id=session.get("user_id"))
+    else:
+        return redirect(url_for('search'))
 
 
 
@@ -60,14 +60,18 @@ def search():
     if session.get("user_id") is None:
         return redirect(url_for('index'))
     else:
-        """
+        if request.form.get('search_term') is not None:
+            #session.search_terms = "'%" + "%','%".join(request.form["search_term"].lower().split(' ')) + "%'"
+            session.search_terms = "%" + request.form["search_term"].lower() + "%"
+            db.execute("""
 select *
 from books
-WHERE lower(isbn_text) like lower('%john%')
-OR lower(title_text)   like lower('%john%')
-OR lower(author_name)  like lower('%john%')
+WHERE lower(isbn_text) like (:search_terms)
+OR lower(title_text)   like (:search_terms)
+OR lower(author_name)  like (:search_terms)
 ;
-"""
+""",{"search_terms": session.search_terms}).fetchall()
+
         return render_template("search.html", message="", user_id=session.get("user_id"))
 
 @app.route("/logout",methods=["GET","POST"])
