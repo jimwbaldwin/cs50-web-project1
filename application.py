@@ -61,18 +61,20 @@ def search():
         return redirect(url_for('index'))
     else:
         if request.form.get('search_term') is not None:
-            #session.search_terms = "'%" + "%','%".join(request.form["search_term"].lower().split(' ')) + "%'"
-            session.search_terms = "%" + request.form["search_term"].lower() + "%"
-            db.execute("""
-select *
-from books
-WHERE lower(isbn_text) like (:search_terms)
-OR lower(title_text)   like (:search_terms)
-OR lower(author_name)  like (:search_terms)
-;
-""",{"search_terms": session.search_terms}).fetchall()
-
-        return render_template("search.html", message="", user_id=session.get("user_id"))
+            #session.get("search_result") = "'%" + "%','%".join(request.form["search_term"].lower().split(' ')) + "%'"
+            session["search_terms"] = "%" + request.form["search_term"].lower() + "%"
+            session["search_result"] = db.execute("""
+                select *
+                from books
+                WHERE lower(isbn_text) like (:search_terms)
+                OR lower(title_text)   like (:search_terms)
+                OR lower(author_name)  like (:search_terms)
+                ;
+                """,{"search_terms": session.get("search_terms")}
+                ).fetchall()
+            
+            print(session["search_result"])
+        return render_template("search.html", message="", user_id=session.get("user_id"), search_result=session.get("search_result"))
 
 @app.route("/logout",methods=["GET","POST"])
 def logout():

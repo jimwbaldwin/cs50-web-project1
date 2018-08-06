@@ -19,6 +19,19 @@
         </form>
       </div>
     </div>
+    <div class="row">
+      <div class="col">
+      {% if search_result is defined %}
+        <table>
+        {% for book in search_result %}
+          <tr>
+            <td>{{ book.title_text }}</td>
+          </tr>
+        {% endfor %}
+        </table>
+      {% endif %}
+      </div>
+    </div>
   </div>
   {% endif %}
 {% endblock %}
