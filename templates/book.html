@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block title %}
+  Find a book
+{% endblock %}
+
+{% block body %}
+  {% if user_id is not none %}
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          <table class="table">
+            <tr>
+              <th>Title</th><th>Author</th><th>Year</th><th>ISBN</th>
+            </tr>
+            <tr>
+              <td>{{ book_row.title_text }}</td>
+              <td>{{ book_row.author_name }}</td>
+              <td>{{ book_row.published_year }}</td>
+              <td>{{ book_row.isbn_text }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  {% endif %}
+{% endblock %}

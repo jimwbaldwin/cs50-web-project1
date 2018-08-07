@@ -72,11 +72,24 @@ def search():
                 ;
                 """,{"search_terms": session.get("search_terms")}
                 ).fetchall()
-            
-            print(session["search_result"])
+
+        else:
+            session["search_result"] = None
         return render_template("search.html", message="", user_id=session.get("user_id"), search_result=session.get("search_result"))
 
 @app.route("/logout",methods=["GET","POST"])
 def logout():
     session.clear()
     return render_template("index.html", message="user_logout", user_id=session.get("user_id"))
+
+@app.route("/book/<int:book_id>")
+def book(book_id):
+    session["book_row"] = db.execute("""
+                select *
+                from books
+                WHERE id = :book_id
+                ;
+                """,{"book_id": book_id}
+                ).fetchone()
+    return render_template("book.html", message="", user_id=session.get("user_id"), book_row=session.get("book_row"))
+    

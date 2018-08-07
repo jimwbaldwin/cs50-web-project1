@@ -13,7 +13,7 @@
           <div class="input-group mb-3">
             <input type="text" class="form-control" name="search_term" placeholder="Search ISBN, author name or book title" aria-label="Search ISBN, author name or book title" aria-describedby="button-addon2">
             <div class="input-group-append">
-              <button class="btn btn-outline-secondary" type="button" id="button-addon2">Search</button>
+              <button class="btn btn-outline-secondary" type="submit" id="button-addon2">Search</button>
             </div>
           </div>
         </form>
@@ -21,14 +21,32 @@
     </div>
     <div class="row">
       <div class="col">
-      {% if search_result is defined %}
-        <table>
-        {% for book in search_result %}
-          <tr>
-            <td>{{ book.title_text }}</td>
-          </tr>
-        {% endfor %}
-        </table>
+      {% if search_result is not none %}
+        {% if search_result is defined and search_result|length > 0 %}
+          <div class="table-responsive">
+            <table class="table">
+              <tr>
+                <th>Title</th><th>Author</th><th>Year</th><th>ISBN</th>
+              </tr>
+              {% for book in search_result %}
+                <tr>
+                  <td>{{ book.title_text }}</td>
+                  <td>{{ book.author_name }}</td>
+                  <td>{{ book.published_year }}</td>
+                  <td>{{ book.isbn_text }}</td>
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+        {% else %}
+          <div class="row">
+            <div class="col">
+              <div class="alert alert-info" role="alert">
+                  No books found.
+              </div>
+            </div>
+          </div>  
+        {% endif %}
       {% endif %}
       </div>
     </div>
