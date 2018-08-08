@@ -1,5 +1,6 @@
 import os
 import bcrypt
+import requests
 
 from flask import Flask, session, render_template, redirect, url_for, request
 from flask_session import Session
@@ -21,11 +22,20 @@ Session(app)
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
+# Get the goodreads API key.
+key = os.getenv("GOODREADS_KEY")
 
 @app.route("/",methods=["GET","POST"])
 def index():
+    #The register user process.
     if request.method == "POST" and request.form['btn'] == 'Register':
-        if db.execute("SELECT 1 FROM users WHERE user_name = :user_name;",{"user_name": request.form['register_username']}).fetchone() is None:
+        #Check if the user exists.
+        if db.execute("SELECT 1 FROM users WHERE user_name = :user_name;",{"user_name": request.form['register_username']}).fetchone() is not None:
+            #Return error message.
+            return render_template("index.html", message="user_exists", user_id=session.get("user_id"))
+        #Else user must not exist.
+        else:
+            #Create the user.
             db.execute("INSERT INTO users (user_name, password_hash, given_name, email_addr_text) VALUES (:user_name, :password_hash, :given_name, :email_addr_text)",
             {"user_name": request.form['register_username']
             #Use bcrypt to hash the password. I'm trying not to store it in a variable at all.
@@ -33,10 +43,9 @@ def index():
             , "given_name": request.form['register_email']
             , "email_addr_text": request.form['register_given_name']
             })
+            #Commit so we don't lock the database.
             db.commit()
             return render_template("index.html", message="user_created", user_id=session.get("user_id"))
-        else:
-            return render_template("index.html", message="user_exists", user_id=session.get("user_id"))
     elif request.method == "POST" and request.form['btn'] == 'Login':
         session.login_result = db.execute("SELECT id, password_hash FROM users WHERE user_name = :user_name;"
              ,{"user_name": request.form['login_username']}).fetchone()
@@ -45,14 +54,17 @@ def index():
             session["user_id"] = session.login_result[0]
             #Clear the variables that had the password hash.
             session.login_result = None
+            return redirect(url_for('search'))
         else:
             return render_template("index.html", message="invalid_login", user_id=session.get("user_id"))
         #return render_template("search.html", message="", user_id=session.get("user_id"))
+    elif session.get("message") == "user_logout":
+        session.pop("message")
+        return render_template("index.html", message="user_logout", user_id=session.get("user_id"))
     if session.get("user_id") is None:
         return render_template("index.html", message="", user_id=session.get("user_id"))
     else:
         return redirect(url_for('search'))
-
 
 
 @app.route("/search",methods=["GET","POST"])
@@ -80,16 +92,23 @@ def search():
 @app.route("/logout",methods=["GET","POST"])
 def logout():
     session.clear()
-    return render_template("index.html", message="user_logout", user_id=session.get("user_id"))
+    session["message"]="user_logout"
+    return redirect(url_for('index'))
+    #return render_template("index.html", message="user_logout", user_id=session.get("user_id"))
 
 @app.route("/book/<int:book_id>")
 def book(book_id):
-    session["book_row"] = db.execute("""
-                select *
-                from books
-                WHERE id = :book_id
-                ;
-                """,{"book_id": book_id}
-                ).fetchone()
-    return render_template("book.html", message="", user_id=session.get("user_id"), book_row=session.get("book_row"))
-    
+    if session.get("user_id") is None:
+        return redirect(url_for('index'))
+    else:
+        session["book_row"] = db.execute("""
+                    select *
+                    from books
+                    WHERE id = :book_id
+                    ;
+                    """,{"book_id": book_id}
+                    ).fetchone()
+        res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": key, "isbns": session["book_row"]["isbn_text"]})
+        ratings = res.json().get("books")[0]
+        return render_template("book.html", message="", user_id=session.get("user_id"), book_row=session.get("book_row"), ratings=ratings)
+        

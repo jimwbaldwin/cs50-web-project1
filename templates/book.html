@@ -9,20 +9,21 @@
     <div class="container">
       <div class="row">
         <div class="col">
-          <table class="table">
-            <tr>
-              <th>Title</th><th>Author</th><th>Year</th><th>ISBN</th>
-            </tr>
-            <tr>
-              <td>{{ book_row.title_text }}</td>
-              <td>{{ book_row.author_name }}</td>
-              <td>{{ book_row.published_year }}</td>
-              <td>{{ book_row.isbn_text }}</td>
-            </tr>
-          </table>
+          <ul class="list-group">
+            <li class="list-group-item active">Book details</li>
+            <li class="list-group-item">Title: {{ book_row.title_text }}</li>
+            <li class="list-group-item">Author: {{ book_row.author_name }}</li>
+            <li class="list-group-item">Year: {{ book_row.published_year }}</li>
+            <li class="list-group-item">ISBN: {{ book_row.isbn_text }}</li>
+            <li class="list-group-item">Goodreads Ratings: {{ ratings.ratings_count }}</li>
+            <li class="list-group-item">Goodreads Average Rating: {{ ratings.average_rating }}</li>
+
+
+          </ul>
         </div>
       </div>
     </div>
-
+  {% else %}
+  
   {% endif %}
 {% endblock %}
