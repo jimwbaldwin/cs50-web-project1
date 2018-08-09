@@ -67,7 +67,7 @@ def index():
         return redirect(url_for('search'))
 
 
-@app.route("/search",methods=["GET","POST"])
+@app.route("/search",methods=["GET", "POST"])
 def search():
     if session.get("user_id") is None:
         return redirect(url_for('index'))
@@ -84,31 +84,66 @@ def search():
                 ;
                 """,{"search_terms": session.get("search_terms")}
                 ).fetchall()
-
+            db.commit()
         else:
             session["search_result"] = None
         return render_template("search.html", message="", user_id=session.get("user_id"), search_result=session.get("search_result"))
 
-@app.route("/logout",methods=["GET","POST"])
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
     session.clear()
     session["message"]="user_logout"
     return redirect(url_for('index'))
     #return render_template("index.html", message="user_logout", user_id=session.get("user_id"))
 
-@app.route("/book/<int:book_id>")
+@app.route("/book/<int:book_id>", methods=["GET", "POST"])
 def book(book_id):
     if session.get("user_id") is None:
         return redirect(url_for('index'))
     else:
         session["book_row"] = db.execute("""
-                    select *
-                    from books
-                    WHERE id = :book_id
-                    ;
-                    """,{"book_id": book_id}
-                    ).fetchone()
+            select *
+            from books
+            WHERE id = :book_id
+            ;
+            """,{"book_id": book_id}
+            ).fetchone()
+        db.commit()
+
+        session["rs_user_review"] = db.execute("""
+            select 1
+            from reviews
+            WHERE book_id = :book_id
+            and user_id = :user_id
+            ;
+            """,{"book_id": book_id, "user_id": session.get("user_id")}
+            ).fetchone()
+        db.commit()
+
+        if session.get("rs_user_review") is None and request.form.get("review_score") is not None:
+            db.execute("""
+                INSERT INTO  reviews
+                (book_id, user_id, score_value, review_text)
+                VALUES
+                (:book_id, :user_id, :score_value, :review_text)
+                ;
+                """,{"book_id": book_id, "user_id": session.get("user_id")
+                    , "score_value": request.form.get("review_score"), "review_text": request.form.get("review_text")}
+                )
+            session["rs_user_review"] = 1
+            db.commit()
+
+        session["rs_reviews"] = db.execute("""
+        select *
+        from reviews
+        WHERE book_id = :book_id
+        ;
+        """,{"book_id": book_id}
+        ).fetchall()
+        db.commit()
+
         res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": key, "isbns": session["book_row"]["isbn_text"]})
         ratings = res.json().get("books")[0]
-        return render_template("book.html", message="", user_id=session.get("user_id"), book_row=session.get("book_row"), ratings=ratings)
-        
+        return render_template("book.html", message="", user_id=session.get("user_id"), book_row=session.get("book_row")
+            , ratings=ratings, user_review=session.get("rs_user_review"))
+    
