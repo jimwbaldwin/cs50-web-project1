@@ -2,7 +2,7 @@ import os
 import bcrypt
 import requests
 
-from flask import Flask, session, render_template, redirect, url_for, request
+from flask import Flask, session, render_template, redirect, url_for, request, jsonify, abort
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -156,6 +156,35 @@ def book(book_id):
             ratings=session["gr_reviews_json"], user_review=session.get("rs_user_review"), reviews=session["rs_reviews"])
 
 
-@app.route("/api/<str:isbn_text>", methods=["GET", "POST"])
-def book(isbn_text):
-    pass
+@app.route("/api/<isbn_text>", methods=["GET", "POST"])
+def api(isbn_text):
+    book_details = db.execute("""
+        SELECT   b.title_text as title
+                ,b.author_name as author
+                ,b.published_year as year
+                ,b.isbn_text as isbn
+                ,COUNT(distinct r.id) as review_count
+                ,CAST(AVG(r.score_value) AS DECIMAL(2,1)) as average_score
+        FROM books as b 
+        INNER JOIN reviews as r
+        on b.id = r.book_id
+        WHERE isbn_text = :isbn_text
+        GROUP BY
+                b.title_text
+                ,b.author_name
+                ,b.published_year
+                ,b.isbn_text
+        ;
+        """,{"isbn_text": isbn_text}).fetchone()
+    db.commit()
+    if book_details is None:
+        abort(404)
+    else:
+        output_dict = {}
+        output_dict["title"] = book_details["title"]
+        output_dict["author"] = book_details["author"]
+        output_dict["year"] = book_details["year"]
+        output_dict["isbn"] = book_details["isbn"]
+        output_dict["review_count"] = book_details["review_count"]
+        output_dict["average_score"] = book_details["average_score"]
+    return jsonify(output_dict)
