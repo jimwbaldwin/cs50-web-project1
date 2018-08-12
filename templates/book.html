@@ -48,6 +48,21 @@
         </div>
       </div>
       {% endif %}
+      {% for review in reviews %}
+        <div class="row">
+          <div class="col">
+            <div class="card">
+              <div class="card-header">Review by {{ review.user_name }}</div>
+              <div class="card-body">
+                <h4>{{ review.score_value }}/5</h4>
+                <p>{{ review.review_text }}</p>
+                <p>Review submitted at {{ review.create_timestamp }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+
     </div>
   {% else %}
   

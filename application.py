@@ -134,16 +134,28 @@ def book(book_id):
             db.commit()
 
         session["rs_reviews"] = db.execute("""
-        select *
-        from reviews
-        WHERE book_id = :book_id
+        select 
+             u.user_name
+            ,r.score_value
+            ,r.review_text
+            ,r.create_timestamp
+        from reviews       as r
+        INNER JOIN users   as u
+        ON r.user_id = u.id
+        WHERE r.book_id = :book_id
+        ORDER BY r.create_timestamp DESC
         ;
         """,{"book_id": book_id}
         ).fetchall()
         db.commit()
 
-        res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": key, "isbns": session["book_row"]["isbn_text"]})
-        ratings = res.json().get("books")[0]
-        return render_template("book.html", message="", user_id=session.get("user_id"), book_row=session.get("book_row")
-            , ratings=ratings, user_review=session.get("rs_user_review"))
-    
+        session["gr_reviews_request"] = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": key, "isbns": session["book_row"]["isbn_text"]})
+        session["gr_reviews_json"] = session["gr_reviews_request"].json().get("books")[0]
+        session.pop("gr_reviews_request")
+        return render_template("book.html", message="", user_id=session.get("user_id"), book_row=session.get("book_row"),
+            ratings=session["gr_reviews_json"], user_review=session.get("rs_user_review"), reviews=session["rs_reviews"])
+
+
+@app.route("/api/<str:isbn_text>", methods=["GET", "POST"])
+def book(isbn_text):
+    pass
