@@ -23,7 +23,7 @@
         </div>
       </div>  
       <!-- Login card -->
-      <form method="post">
+      <form method="post" action="{{ url_for('login') }}">
         <div class="card">
           <div class="card-header">Log in</div>
           <div class="card-body">
@@ -59,7 +59,7 @@
       <!-- /Login card -->
       <hr>
       <!-- Register card -->
-      <form method="post">
+      <form method="post" action="{{ url_for('register') }}">
           <div class="card">
             <div class="card-header">Register new user</div>
             <div class="card-body">

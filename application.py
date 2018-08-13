@@ -27,44 +27,48 @@ key = os.getenv("GOODREADS_KEY")
 
 @app.route("/",methods=["GET","POST"])
 def index():
-    #The register user process.
-    if request.method == "POST" and request.form['btn'] == 'Register':
-        #Check if the user exists.
-        if db.execute("SELECT 1 FROM users WHERE user_name = :user_name;",{"user_name": request.form['register_username']}).fetchone() is not None:
-            #Return error message.
-            return render_template("index.html", message="user_exists", user_id=session.get("user_id"))
-        #Else user must not exist.
-        else:
-            #Create the user.
-            db.execute("INSERT INTO users (user_name, password_hash, given_name, email_addr_text) VALUES (:user_name, :password_hash, :given_name, :email_addr_text)",
-            {"user_name": request.form['register_username']
-            #Use bcrypt to hash the password. I'm trying not to store it in a variable at all.
-            , "password_hash": bcrypt.hashpw(request.form['register_password'].encode("utf8"), bcrypt.gensalt())
-            , "given_name": request.form['register_email']
-            , "email_addr_text": request.form['register_given_name']
-            })
-            #Commit so we don't lock the database.
-            db.commit()
-            return render_template("index.html", message="user_created", user_id=session.get("user_id"))
-    elif request.method == "POST" and request.form['btn'] == 'Login':
-        rs_login_result = db.execute("SELECT id, password_hash FROM users WHERE user_name = :user_name;"
-             ,{"user_name": request.form['login_username']}).fetchone()
-        db.commit()
-        if rs_login_result is not None and bcrypt.checkpw(request.form['login_password'].encode("utf8"), bytes(rs_login_result[1])):
-            session["user_id"] = rs_login_result[0]
-            #Clear the variables that had the password hash.
-            rs_login_result = None
-            return redirect(url_for('search'))
-        else:
-            return render_template("index.html", message="invalid_login", user_id=session.get("user_id"))
-        #return render_template("search.html", message="", user_id=session.get("user_id"))
-    elif session.get("message") == "user_logout":
-        session.pop("message")
-        return render_template("index.html", message="user_logout", user_id=session.get("user_id"))
-    if session.get("user_id") is None:
-        return render_template("index.html", message="", user_id=session.get("user_id"))
-    else:
+    if session.get("user_id") is not None:
         return redirect(url_for('search'))
+    else:
+        #pop the message so it only displays once
+        message = session.pop("message", None)
+        return render_template("index.html", message=message, user_id=session.get("user_id"))
+
+
+@app.route("/register",methods=["POST"])
+def register():
+    if db.execute("SELECT 1 FROM users WHERE user_name = :user_name;",{"user_name": request.form['register_username']}).fetchone() is not None:
+        db.commit()
+        #Return error message.
+        session["message"] = "user_exists"
+        return redirect(url_for('index'))
+    #Else user must not exist.
+    else:
+        #Create the user.
+        db.execute("INSERT INTO users (user_name, password_hash, given_name, email_addr_text) VALUES (:user_name, :password_hash, :given_name, :email_addr_text)",
+                   {"user_name": request.form['register_username']
+                   #Use bcrypt to hash the password. I'm trying not to store it in a variable at all.
+                   , "password_hash": bcrypt.hashpw(request.form['register_password'].encode("utf8"), bcrypt.gensalt())
+                   , "given_name": request.form['register_email']
+                   , "email_addr_text": request.form['register_given_name']
+                   })
+        #Commit so we don't lock the database.
+        db.commit()
+        session["message"] = "user_created"
+        return redirect(url_for('index'))
+
+
+@app.route("/login",methods=["POST"])
+def login():
+    rs_login_result = db.execute("SELECT id, password_hash FROM users WHERE user_name = :user_name;"
+            ,{"user_name": request.form['login_username']}).fetchone()
+    db.commit()
+    if rs_login_result is not None and bcrypt.checkpw(request.form['login_password'].encode("utf8"), bytes(rs_login_result[1])):
+        session["user_id"] = rs_login_result[0]
+        return redirect(url_for('search'))
+    else:
+        session["message"] = "invalid_login"
+        return redirect(url_for('index'))
 
 
 @app.route("/search",methods=["GET", "POST"])
@@ -89,12 +93,14 @@ def search():
             search_result = None
         return render_template("search.html", message="", user_id=session.get("user_id"), search_result=search_result)
 
+
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
     session.clear()
     session["message"]="user_logout"
     return redirect(url_for('index'))
     #return render_template("index.html", message="user_logout", user_id=session.get("user_id"))
+
 
 @app.route("/book/<int:book_id>", methods=["GET", "POST"])
 def book(book_id):
