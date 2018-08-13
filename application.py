@@ -47,13 +47,13 @@ def index():
             db.commit()
             return render_template("index.html", message="user_created", user_id=session.get("user_id"))
     elif request.method == "POST" and request.form['btn'] == 'Login':
-        session.login_result = db.execute("SELECT id, password_hash FROM users WHERE user_name = :user_name;"
+        rs_login_result = db.execute("SELECT id, password_hash FROM users WHERE user_name = :user_name;"
              ,{"user_name": request.form['login_username']}).fetchone()
         db.commit()
-        if session.login_result is not None and bcrypt.checkpw(request.form['login_password'].encode("utf8"), bytes(session.login_result[1])):
-            session["user_id"] = session.login_result[0]
+        if rs_login_result is not None and bcrypt.checkpw(request.form['login_password'].encode("utf8"), bytes(rs_login_result[1])):
+            session["user_id"] = rs_login_result[0]
             #Clear the variables that had the password hash.
-            session.login_result = None
+            rs_login_result = None
             return redirect(url_for('search'))
         else:
             return render_template("index.html", message="invalid_login", user_id=session.get("user_id"))
@@ -74,20 +74,20 @@ def search():
     else:
         if request.form.get('search_term') is not None:
             #session.get("search_result") = "'%" + "%','%".join(request.form["search_term"].lower().split(' ')) + "%'"
-            session["search_terms"] = "%" + request.form["search_term"].lower() + "%"
-            session["search_result"] = db.execute("""
+            search_terms = "%" + request.form["search_term"].lower() + "%"
+            search_result = db.execute("""
                 select *
                 from books
                 WHERE lower(isbn_text) like (:search_terms)
                 OR lower(title_text)   like (:search_terms)
                 OR lower(author_name)  like (:search_terms)
                 ;
-                """,{"search_terms": session.get("search_terms")}
+                """,{"search_terms": search_terms}
                 ).fetchall()
             db.commit()
         else:
-            session["search_result"] = None
-        return render_template("search.html", message="", user_id=session.get("user_id"), search_result=session.get("search_result"))
+            search_result = None
+        return render_template("search.html", message="", user_id=session.get("user_id"), search_result=search_result)
 
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
@@ -101,7 +101,7 @@ def book(book_id):
     if session.get("user_id") is None:
         return redirect(url_for('index'))
     else:
-        session["book_row"] = db.execute("""
+        rs_book = db.execute("""
             select *
             from books
             WHERE id = :book_id
@@ -110,7 +110,7 @@ def book(book_id):
             ).fetchone()
         db.commit()
 
-        session["rs_user_review"] = db.execute("""
+        rs_user_review = db.execute("""
             select 1
             from reviews
             WHERE book_id = :book_id
@@ -120,7 +120,7 @@ def book(book_id):
             ).fetchone()
         db.commit()
 
-        if session.get("rs_user_review") is None and request.form.get("review_score") is not None:
+        if rs_user_review is None and request.form.get("review_score") is not None:
             db.execute("""
                 INSERT INTO  reviews
                 (book_id, user_id, score_value, review_text)
@@ -130,10 +130,10 @@ def book(book_id):
                 """,{"book_id": book_id, "user_id": session.get("user_id")
                     , "score_value": request.form.get("review_score"), "review_text": request.form.get("review_text")}
                 )
-            session["rs_user_review"] = 1
+            rs_user_review = 1
             db.commit()
 
-        session["rs_reviews"] = db.execute("""
+        rs_reviews = db.execute("""
         select 
              u.user_name
             ,r.score_value
@@ -149,11 +149,12 @@ def book(book_id):
         ).fetchall()
         db.commit()
 
-        session["gr_reviews_request"] = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": key, "isbns": session["book_row"]["isbn_text"]})
-        session["gr_reviews_json"] = session["gr_reviews_request"].json().get("books")[0]
-        session.pop("gr_reviews_request")
-        return render_template("book.html", message="", user_id=session.get("user_id"), book_row=session.get("book_row"),
-            ratings=session["gr_reviews_json"], user_review=session.get("rs_user_review"), reviews=session["rs_reviews"])
+        gr_reviews_request = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": key, "isbns": rs_book["isbn_text"]})
+        gr_reviews_json = gr_reviews_request.json().get("books")[0]
+        return render_template("book.html", message="", user_id=session.get("user_id"), 
+                               book_row=rs_book, ratings=gr_reviews_json, 
+                               user_review=rs_user_review, reviews=rs_reviews
+                               )
 
 
 @app.route("/api/<isbn_text>", methods=["GET", "POST"])
